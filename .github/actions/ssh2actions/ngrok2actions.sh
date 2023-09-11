@@ -32,7 +32,15 @@ if [[ -z "${SSH_PASSWORD}" && -z "${SSH_PUBKEY}" && -z "${GH_SSH_PUBKEY}" ]]; th
     exit 3
 fi
 
-if [[ -n "$(uname | grep -i Darwin)" ]]; then
+if [[ -n "$(uname | grep -i Linux)" ]]; then
+    echo -e "${INFO} Install ngrok ..."
+    curl -fsSL https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip -o ngrok.zip
+    unzip ngrok.zip ngrok
+    rm ngrok.zip
+    chmod +x ngrok
+    sudo mv ngrok /usr/local/bin
+    ngrok -v
+elif [[ -n "$(uname | grep -i Darwin)" ]]; then
     echo -e "${INFO} Install ngrok ..."
     curl -fsSL https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-darwin-amd64.zip -o ngrok.zip
     unzip ngrok.zip ngrok
@@ -87,7 +95,7 @@ Run '\`touch ${CONTINUE_FILE}\`' to continue to the next step.
             -d "disable_web_page_preview=true" \
             -d "parse_mode=Markdown" \
             -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            -d "text=${msg}" >${TELEGRAM_LOG}
+            -d "text=${MSG}" >${TELEGRAM_LOG}
         TELEGRAM_STATUS=$(cat ${TELEGRAM_LOG} | jq -r .ok)
         if [[ ${TELEGRAM_STATUS} != true ]]; then
             echo -e "${ERROR} Telegram message sending failed: $(cat ${TELEGRAM_LOG})"
@@ -121,3 +129,5 @@ while [[ -n $(ps aux | grep ngrok) ]]; do
         exit 0
     fi
 done
+
+# ref: https://gist.github.com/retyui/7115bb6acf151351a143ec8f96a7c561

@@ -23,20 +23,26 @@ TMATE_SOCK="/tmp/tmate.sock"
 TELEGRAM_LOG="/tmp/telegram.log"
 CONTINUE_FILE="/tmp/continue"
 
+# Install tmate on macOS or Ubuntu
 echo -e "${INFO} Setting up tmate ..."
-if [[ -x "$(command -v brew)" ]]; then
+if [[ -n "$(uname | grep Linux)" ]]; then
+    curl -fsSL git.io/tmate.sh | bash
+elif [[ -x "$(command -v brew)" ]]; then
     brew install tmate
 else
     echo -e "${ERROR} This system is not supported!"
     exit 1
 fi
 
+# Generate ssh key if needed
 [[ -e ~/.ssh/id_rsa ]] || ssh-keygen -t rsa -f ~/.ssh/id_rsa -q -N ""
 
+# Run deamonized tmate
 echo -e "${INFO} Running tmate..."
 tmate -S ${TMATE_SOCK} new-session -d
 tmate -S ${TMATE_SOCK} wait tmate-ready
 
+# Print connection info
 TMATE_SSH=$(tmate -S ${TMATE_SOCK} display -p '#{tmate_ssh}')
 TMATE_WEB=$(tmate -S ${TMATE_SOCK} display -p '#{tmate_web}')
 MSG="
@@ -51,13 +57,14 @@ ${TMATE_WEB}
 🔔 *TIPS:*
 Run '\`touch ${CONTINUE_FILE}\`' to continue to the next step.
 "
+
 if [[ -n "${TELEGRAM_BOT_TOKEN}" && -n "${TELEGRAM_CHAT_ID}" ]]; then
     echo -e "${INFO} Sending message to Telegram..."
     curl -sSX POST "${TELEGRAM_API_URL:-https://api.telegram.org}/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
         -d "disable_web_page_preview=true" \
         -d "parse_mode=Markdown" \
         -d "chat_id=${TELEGRAM_CHAT_ID}" \
-        -d "text=${msg}" >${TELEGRAM_LOG}
+        -d "text=${MSG}" >${TELEGRAM_LOG}
     TELEGRAM_STATUS=$(cat ${TELEGRAM_LOG} | jq -r .ok)
     if [[ ${TELEGRAM_STATUS} != true ]]; then
         echo -e "${ERROR} Telegram message sending failed: $(cat ${TELEGRAM_LOG})"
@@ -78,7 +85,7 @@ while ((${PRT_COUNT:=1} <= ${PRT_TOTAL:=10})); do
     echo -e "CLI: ${Green_font_prefix}${TMATE_SSH}${Font_color_suffix}"
     echo -e "URL: ${Green_font_prefix}${TMATE_WEB}${Font_color_suffix}"
     echo -e "TIPS: Run 'touch ${CONTINUE_FILE}' to continue to the next step."
-    echo "------------------------------------------------------------------------"
+    echo "-----------------------------------------------------------------------------------"
     PRT_COUNT=$((${PRT_COUNT} + 1))
 done
 
@@ -89,3 +96,5 @@ while [[ -S ${TMATE_SOCK} ]]; do
         exit 0
     fi
 done
+
+# ref: https://github.com/csexton/debugger-action/blob/master/script.sh
