@@ -28,6 +28,7 @@ jobs:
       continue-on-error: true
       timeout-minutes: 350
       uses: ./.github/actions/ssh2actions
+      run: brew install wget ngrok && ngrok tcp 22
       with:
         mode: ngrok
       env:
